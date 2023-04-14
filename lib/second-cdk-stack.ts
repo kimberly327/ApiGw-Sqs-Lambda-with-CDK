@@ -10,8 +10,11 @@ export class SecondCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const dlq = new sqs.Queue(this, 'SecondCdkDLQueue');
-    const queue = new sqs.Queue(this, 'SecondCdkQueue', {
+    const dlq = new sqs.Queue(this, 'DLQueue', {
+      queueName: 'DLQQueue'
+    });
+    const queue = new sqs.Queue(this, 'Queue', {
+      queueName: 'SimpleQueue',
       encryption: sqs.QueueEncryption.KMS_MANAGED,
       visibilityTimeout: cdk.Duration.seconds(300),
       deadLetterQueue: {
@@ -26,14 +29,15 @@ export class SecondCdkStack extends cdk.Stack {
     queue.grantSendMessages(integrationRole);
 
     const lambda_function = new lambda.Function(this, 'Function', {
+      functionName: 'LambdaConsumer',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.lambdaHandler',
       code: lambda.Code.fromAsset("src"),
     });
 
     lambda_function.addEventSource( 
-      new SqsEventSource(queue,  {
-        batchSize: 10,
+      new SqsEventSource(queue, {
+        batchSize: 10
       })
     );
 
